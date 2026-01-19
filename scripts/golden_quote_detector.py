@@ -240,24 +240,243 @@ class GoldenQuoteDetector:
                 ))
 
     def _detect_by_ai(self, sentences: List[Dict], rule: Dict):
-        """使用 AI 分析检测金句（需要 API）"""
+        """使用 AI 分析检测金句（支持多个提供商）"""
         print("  🤖 AI 分析规则")
 
+        # 检查是否启用
+        enable = rule.get('enable', 'auto')
+        if enable == 'false':
+            print("  ⚠️ AI 分析已禁用")
+            return
+
+        # 自动检测或使用指定的提供商
+        provider = rule.get('provider', 'auto')
+        model = rule.get('model', 'auto')
+        max_quotes = rule.get('max_quotes', 5)
+        timeout = rule.get('timeout', 30)
+
+        # 尝试执行 AI 分析
+        success = False
+
+        # 如果是 auto 模式，按优先级尝试不同的提供商
+        if provider == 'auto':
+            # 优先尝试 Anthropic (Claude)
+            success = self._try_ai_provider(sentences, rule, 'anthropic', model, max_quotes, timeout)
+
+            # 如果失败，尝试 OpenAI
+            if not success:
+                success = self._try_ai_provider(sentences, rule, 'openai', model, max_quotes, timeout)
+
+            # 如果都失败，尝试 Ollama (本地)
+            if not success:
+                success = self._try_ai_provider(sentences, rule, 'ollama', model, max_quotes, timeout)
+        else:
+            # 使用指定的提供商
+            success = self._try_ai_provider(sentences, rule, provider, model, max_quotes, timeout)
+
+        if not success:
+            print("  ⚠️ 所有 AI 提供商均不可用，跳过 AI 分析")
+            print("  💡 提示：设置环境变量 OPENAI_API_KEY 或 ANTHROPIC_API_KEY 以启用 AI 分析")
+
+    def _try_ai_provider(self, sentences: List[Dict], rule: Dict, provider: str, model: str, max_quotes: int, timeout: int) -> bool:
+        """尝试使用指定的 AI 提供商"""
+
+        try:
+            if provider == 'anthropic':
+                return self._detect_with_anthropic(sentences, rule, model, max_quotes, timeout)
+            elif provider == 'openai':
+                return self._detect_with_openai(sentences, rule, model, max_quotes, timeout)
+            elif provider == 'ollama':
+                return self._detect_with_ollama(sentences, rule, model, max_quotes, timeout)
+            else:
+                return False
+
+        except Exception as e:
+            print(f"  ⚠️ {provider.upper()} 失败: {str(e)[:50]}...")
+            return False
+
+    def _detect_with_anthropic(self, sentences: List[Dict], rule: Dict, model: str, max_quotes: int, timeout: int) -> bool:
+        """使用 Anthropic Claude API"""
+        try:
+            import anthropic
+        except ImportError:
+            return False
+
+        api_key = rule.get('api_key') or os.getenv('ANTHROPIC_API_KEY')
+        if not api_key:
+            return False
+
+        # 选择模型
+        if model == 'auto':
+            model_priority = rule.get('model_priority', [])
+            model = next((m for m in model_priority if 'claude' in m.lower()), 'claude-3-5-sonnet-20241022')
+
+        print(f"  🔹 使用 Anthropic Claude: {model}")
+
+        client = anthropic.Anthropic(api_key=api_key, timeout=timeout)
+
+        # 构建提示词
+        all_text = '\n'.join([f"{i+1}. {s['text']}" for i, s in enumerate(sentences)])
+        prompt = f"""请从以下文本中找出 {max_quotes} 最有价值的金句（名言、总结、重点、精彩观点）。
+
+文本内容：
+{all_text}
+
+请只返回JSON格式，包含以下字段：
+- index: 金句序号（1-{len(sentences)}）
+- reason: 选择理由（简短，10字以内）
+- score: 评分（1-100）
+
+返回格式示例：
+[
+  {{"index": 5, "reason": "精辟总结", "score": 95}},
+  {{"index": 12, "reason": "核心观点", "score": 88}}
+]
+
+要求：
+1. 只返回JSON，不要其他文字
+2. 确保所有序号都在有效范围内
+3. 评分要合理分布，不要全部相同"""
+
+        response = client.messages.create(
+            model=model,
+            max_tokens=1024,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3
+        )
+
+        # 解析响应
+        content = response.content[0].text
+        # 移除可能的 markdown 代码块标记
+        content = content.strip()
+        if content.startswith('```'):
+            content = content.split('\n', 1)[1]
+        if content.endswith('```'):
+            content = content.rsplit('\n', 1)[0]
+        content = content.strip()
+
+        result = json.loads(content)
+
+        for item in result:
+            idx = item.get('index', 0) - 1
+            if 0 <= idx < len(sentences):
+                sent = sentences[idx]
+                self.quotes.append(Quote(
+                    text=sent['text'],
+                    start_ms=sent['start'],
+                    end_ms=sent['end'],
+                    score=float(item.get('score', 70)),
+                    reason=f"AI: {item.get('reason', '精彩')}",
+                    timestamp=self._format_timestamp(sent['start'])
+                ))
+
+        print(f"  ✅ Claude 分析完成，识别 {len(result)} 条金句")
+        return True
+
+    def _detect_with_openai(self, sentences: List[Dict], rule: Dict, model: str, max_quotes: int, timeout: int) -> bool:
+        """使用 OpenAI API"""
         try:
             import openai
-            api_key = rule.get('api_key') or os.getenv('OPENAI_API_KEY')
-            if not api_key:
-                print("  ⚠️ 未配置 API Key，跳过 AI 分析")
-                return
+        except ImportError:
+            return False
 
-            client = openai.OpenAI(api_key=api_key)
-            model = rule.get('model', 'gpt-4')
-            max_quotes = rule.get('max_quotes', 5)
+        api_key = rule.get('api_key') or os.getenv('OPENAI_API_KEY')
+        if not api_key:
+            return False
 
-            # 构建提示词
-            all_text = '\n'.join([f"{i+1}. {s['text']}" for i, s in enumerate(sentences)])
+        # 选择模型
+        if model == 'auto':
+            model_priority = rule.get('model_priority', [])
+            model = next((m for m in model_priority if 'gpt' in m.lower()), 'gpt-4o')
 
-            prompt = f"""请从以下文本中找出 {max_quotes} 最有价值的金句（名言、总结、重点、精彩观点）。
+        print(f"  🔹 使用 OpenAI: {model}")
+
+        client = openai.OpenAI(api_key=api_key, timeout=timeout)
+
+        # 构建提示词
+        all_text = '\n'.join([f"{i+1}. {s['text']}" for i, s in enumerate(sentences)])
+        prompt = f"""请从以下文本中找出 {max_quotes} 最有价值的金句（名言、总结、重点、精彩观点）。
+
+文本内容：
+{all_text}
+
+请只返回JSON格式，包含以下字段：
+- index: 金句序号（1-{len(sentences)}）
+- reason: 选择理由（简短，10字以内）
+- score: 评分（1-100）
+
+返回格式示例：
+[
+  {{"index": 5, "reason": "精辟总结", "score": 95}},
+  {{"index": 12, "reason": "核心观点", "score": 88}}
+]
+
+要求：
+1. 只返回JSON，不要其他文字
+2. 确保所有序号都在有效范围内
+3. 评分要合理分布"""
+
+        response = client.chat.completions.create(
+            model=model,
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3,
+            timeout=timeout
+        )
+
+        content = response.choices[0].message.content
+        # 移除可能的 markdown 代码块标记
+        content = content.strip()
+        if content.startswith('```'):
+            content = content.split('\n', 1)[1]
+        if content.endswith('```'):
+            content = content.rsplit('\n', 1)[0]
+        content = content.strip()
+
+        result = json.loads(content)
+
+        for item in result:
+            idx = item.get('index', 0) - 1
+            if 0 <= idx < len(sentences):
+                sent = sentences[idx]
+                self.quotes.append(Quote(
+                    text=sent['text'],
+                    start_ms=sent['start'],
+                    end_ms=sent['end'],
+                    score=float(item.get('score', 70)),
+                    reason=f"AI: {item.get('reason', '精彩')}",
+                    timestamp=self._format_timestamp(sent['start'])
+                ))
+
+        print(f"  ✅ OpenAI 分析完成，识别 {len(result)} 条金句")
+        return True
+
+    def _detect_with_ollama(self, sentences: List[Dict], rule: Dict, model: str, max_quotes: int, timeout: int) -> bool:
+        """使用本地 Ollama 模型"""
+        try:
+            import requests
+        except ImportError:
+            print("  ⚠️ 未安装 requests 库")
+            return False
+
+        # 选择模型
+        if model == 'auto':
+            model = 'llama3.1'  # 默认使用 Llama 3.1
+
+        print(f"  🔹 使用 Ollama 本地模型: {model}")
+
+        api_base = rule.get('api_base', 'http://localhost:11434')
+
+        # 检查 Ollama 是否运行
+        try:
+            response = requests.get(f"{api_base}/api/tags", timeout=5)
+            if response.status_code != 200:
+                return False
+        except:
+            return False
+
+        # 构建提示词
+        all_text = '\n'.join([f"{i+1}. {s['text']}" for i, s in enumerate(sentences)])
+        prompt = f"""请从以下文本中找出 {max_quotes} 最有价值的金句（名言、总结、重点、精彩观点）。
 
 文本内容：
 {all_text}
@@ -269,38 +488,57 @@ class GoldenQuoteDetector:
 
 返回格式示例：
 [
-  {{"index": 5, "reason": "精辟的总结", "score": 95}},
+  {{"index": 5, "reason": "精辟总结", "score": 95}},
   {{"index": 12, "reason": "核心观点", "score": 88}}
 ]
-"""
 
-            response = client.chat.completions.create(
-                model=model,
-                messages=[{"role": "user", "content": prompt}],
-                temperature=0.3
+注意：只返回JSON，不要其他文字。"""
+
+        try:
+            response = requests.post(
+                f"{api_base}/api/generate",
+                json={
+                    "model": model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"temperature": 0.3}
+                },
+                timeout=timeout
             )
 
-            result = json.loads(response.choices[0].message.content)
+            if response.status_code != 200:
+                return False
+
+            content = response.json().get('response', '')
+            # 移除可能的 markdown 代码块标记
+            content = content.strip()
+            if content.startswith('```'):
+                content = content.split('\n', 1)[1]
+            if content.endswith('```'):
+                content = content.rsplit('\n', 1)[0]
+            content = content.strip()
+
+            result = json.loads(content)
 
             for item in result:
-                idx = item['index'] - 1
+                idx = item.get('index', 0) - 1
                 if 0 <= idx < len(sentences):
                     sent = sentences[idx]
                     self.quotes.append(Quote(
                         text=sent['text'],
                         start_ms=sent['start'],
                         end_ms=sent['end'],
-                        score=item['score'],
-                        reason=f"AI分析: {item['reason']}",
+                        score=float(item.get('score', 70)),
+                        reason=f"AI: {item.get('reason', '精彩')}",
                         timestamp=self._format_timestamp(sent['start'])
                     ))
 
-            print(f"  ✅ AI 分析完成，识别 {len(result)} 条金句")
+            print(f"  ✅ Ollama 分析完成，识别 {len(result)} 条金句")
+            return True
 
-        except ImportError:
-            print("  ⚠️ 未安装 openai 库，跳过 AI 分析")
         except Exception as e:
-            print(f"  ❌ AI 分析失败: {e}")
+            print(f"  ⚠️ Ollama 调用失败: {str(e)[:50]}...")
+            return False
 
     def _deduplicate_quotes(self) -> List[Quote]:
         """去重：移除重叠的金句"""
