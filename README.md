@@ -7,7 +7,11 @@
 
 ## 📝 项目说明
 
-本项目基于基础的智能视频剪辑工具进行了**重大功能升级和优化**，新增了金句检测、GIF生成、一键处理等20+项实用功能。
+本仓库是对 [Ceeon/videocut-skills](https://github.com/Ceeon/videocut-skills) 的**功能升级和优化版本**。
+
+**原始项目**: [Ceeon/videocut-skills](https://github.com/Ceeon/videocut-skills) by [Ceeon](https://github.com/Ceeon)
+
+**主要升级**: 由 **yzz05220-rgb** 在原有基础上新增 20+ 项实用功能，包括金句检测、GIF生成、一键处理、批量处理等。
 
 ## ✨ 特性
 
@@ -234,15 +238,45 @@ MIT License
 
 ## 📜 致谢
 
-本项目在基础智能视频剪辑工具的基础上进行了功能扩展和优化。
+### 原始项目
 
-**使用的开源项目：**
-- [FunASR](https://github.com/alibaba-damo-academy/FunASR) - 语音识别
-- [FFmpeg](https://ffmpeg.org/) - 视频处理
-- [Whisper](https://github.com/openai/whisper) - 字幕生成
+本项目基于 [Ceeon/videocut-skills](https://github.com/Ceeon/videocut-skills) 进行功能扩展。
+
+**原作者**: [Ceeon](https://github.com/Ceeon)
+
+**原始仓库**: https://github.com/Ceeon/videocut-skills
+
+原始项目提供了基础的智能视频剪辑功能，包括 FunASR 语音转录、口误识别、静音检测等核心能力。
+
+### 主要升级贡献
+
+**yzz05220-rgb** - 20+ 项功能升级和优化
+
+在原有基础上新增：
+- 一键处理工作流
+- 智能金句检测系统
+- GIF 自动生成
+- 批量处理支持
+- 完整配置系统
+- 预览模式
+- 统计分析报告
+- 智能边界调整
+
+### 使用的开源技术
+
+本项目的实现基于以下优秀的开源项目：
+
+- **FunASR** - 阿里巴巴达摩院语音识别工具
+- **FFmpeg** - 多媒体处理框架
+- **Whisper** - OpenAI 语音识别模型
+- **PyTorch** - 深度学习框架
+
+感谢这些开源项目的贡献者！
 
 ---
 
-**仓库**: https://github.com/yzz05220-rgb/video-cutter
+**本仓库**: https://github.com/yzz05220-rgb/video-cutter
+
+**原始仓库**: https://github.com/Ceeon/videocut-skills
 
 **主要升级**: yzz05220-rgb (20+ 项新增功能)

@@ -1,10 +1,19 @@
 # 更新日志
 
+## 项目说明
+
+本项目基于 [Ceeon/videocut-skills](https://github.com/Ceeon/videocut-skills) 的 v1.0 版本进行功能升级。
+
+**原作者**: [Ceeon](https://github.com/Ceeon)
+**主要升级**: yzz05220-rgb
+
+---
+
 ## [2.0.0] - 2025-01-20
 
 ### 🎉 重大功能升级
 
-由 **yzz05220-rgb** 进行的主要升级优化，新增 20+ 项实用功能。
+由 **yzz05220-rgb** 在 [Ceeon/videocut-skills](https://github.com/Ceeon/videocut-skills) 基础上进行的重大升级优化，新增 20+ 项实用功能。
 
 ### ✨ 新增功能
 
@@ -95,25 +104,28 @@
 
 ## [1.0.0] - 基础版本
 
-基础智能视频剪辑工具实现。
+**原作者**: [Ceeon](https://github.com/Ceeon)
+
+**原始项目**: [Ceeon/videocut-skills](https://github.com/Ceeon/videocut-skills)
 
 ### 基础功能
 - FunASR 语音转录
-- 语气词/重复字/静音检测
+- 逐字口误识别（语气词/重复字/静音检测）
 - FFmpeg 视频剪辑和拼接
+- Whisper 字幕生成（带词典纠正）
+- 自更新系统（学习用户偏好）
 - 简单的项目管理结构
-- 字幕生成（Whisper）
 
-### 核心文件
-- `transcriber.py` - 语音转录
-- `analyzer.py` - 基础分析器
-- `clipper.py` - 视频剪辑
-- `manager.py` - 项目管理
-- `subtitler.py` - 字幕生成
+### 核心特性
+- 逐字检测，精准定位口误
+- 自动识别 ≥1s 静音片段
+- 自动识别并删除"嗯""哎"等语气词
+- 质量碾压剪映的字幕生成
+- 越用越懂用户剪辑习惯的自更新
 
 ---
 
 ## 版本说明
 
-- **v2.0** - 由 yzz05220-rgb 重大升级，新增 20+ 项功能
-- **v1.0** - 基础版本实现
+- **v2.0** - 由 yzz05220-rgb 重大升级，在 v1.0 基础上新增 20+ 项功能
+- **v1.0** - 由 [Ceeon](https://github.com/Ceeon) 创建的基础版本
