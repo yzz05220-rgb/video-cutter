@@ -71,23 +71,11 @@ golden_quotes:
       max_chars: 100     # 最多字符数
       min_words: 5       # 最少词数
 
-    # AI 分析（可选，需要 API）
+    # AI 分析（使用当前对话模型）
     - type: ai
-      enable: auto       # auto/true/false - auto自动检测可用模型
-      provider: auto     # auto/openai/anthropic/ollama/本地模型
-      model: auto        # auto自动选择，或指定如 gpt-4,claude-3-sonnet
-      api_key: ""        # 留空从环境变量读取：OPENAI_API_KEY, ANTHROPIC_API_KEY
-      api_base: ""       # 可选：自定义API端点
+      enable: true       # 是否启用 AI 金句分析
       max_quotes: 5      # 最多返回 N 条金句
-      timeout: 30        # API超时时间（秒）
-
-      # 模型优先级（当provider=auto时按此顺序尝试）
-      model_priority:
-        - claude-3-5-sonnet-20241022
-        - gpt-4o
-        - gpt-4
-        - claude-3-sonnet-20240229
-        - gpt-3.5-turbo
+      # 注意：会自动使用当前对话的 LLM，无需配置 API
 
   # GIF 生成配置
   gif:

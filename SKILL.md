@@ -118,7 +118,7 @@ python golden_quote_detector.py <转录json> -o golden_quotes.json [--top N]
 - 关键词匹配：重要、核心、秘密、必须知道、一定要...
 - 句式模式：总的来说、一句话、重点、本质上...
 - 长度和复杂度：15-100 字、5+ 词
-- AI 分析（可选）：使用 GPT-4 评分
+- AI 分析：使用当前对话的 LLM（在 Skills 环境中自动启用）
 
 **gif_generator.py**（GIF 生成器）
 ```bash
@@ -246,7 +246,8 @@ golden_quotes:
     - type: pattern
       patterns: [".*的来说$", ".*一句话.*"]
     - type: ai
-      enable: false  # AI 分析（需 API）
+      enable: true  # AI 分析（使用当前对话 LLM）
+      max_quotes: 5
 
   # GIF 生成配置
   gif:
@@ -261,6 +262,8 @@ output:
   generate_srt: true
   extract_audio: false
 ```
+
+**注意：** AI 金句分析会自动使用当前对话的 LLM，无需额外配置 API Key。
 
 ## 向用户展示结果
 
@@ -366,16 +369,16 @@ output:
   quality: medium  # 生成 medium 质量
 ```
 
-### AI 金句分析
-配置 OpenAI API（可选）：
+### 金句检测 AI 分析
+
+金句检测会自动使用当前对话的 LLM 进行智能分析，无需额外配置 API。
+
 ```yaml
 golden_quotes:
   rules:
     - type: ai
-      enable: true
-      model: gpt-4
-      api_key: "your-api-key"  # 或使用环境变量
-      max_quotes: 10
+      enable: true  # 启用 AI 分析
+      max_quotes: 5  # 识别金句数量
 ```
 
 ### 提取音频
