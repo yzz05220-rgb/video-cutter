@@ -1,0 +1,187 @@
+# Video Cutter 配置文件
+# 可以根据需要修改这些参数
+
+# ===== 语气词和填充词配置 =====
+filler_words:
+  - 嗯
+  - 啊
+  - 哎
+  - 诶
+  - 呃
+  - 额
+  - 唉
+  - 哦
+  - 噢
+  - 呀
+  - 欸
+  - 那个
+  - 然后
+  - 就是
+  - 也就是
+  - 这种
+  - 这种的话
+  - 对吧
+  - 是吧
+  - 哎呀
+  - 嚯
+  - 哇
+  - 咳
+
+# ===== 静音检测配置 =====
+silence:
+  threshold: 1.0  # 删除 >= 1秒的静音
+  enable: true    # 默认是否删除静音
+
+# ===== 智能边界配置 =====
+buffer:
+  before: 0.05  # 删除片段前保留 50ms (避免生硬)
+  after: 0.05   # 删除片段后保留 50ms
+  min_clip_duration: 0.5  # 最小保留片段长度（秒）
+
+# ===== 金句检测配置 =====
+golden_quotes:
+  enable: true
+  rules:
+    # 关键词匹配
+    - type: keyword
+      keywords:
+        - 重要
+        - 关键
+        - 核心
+        - 秘密
+        - 必须知道
+        - 千万不要
+        - 一定要
+        - 记住
+        - 总结
+
+    # 句式模式
+    - type: pattern
+      patterns:
+        - ".*的来说$"
+        - ".*一句话.*"
+        - ".*重点.*"
+        - ".*本质上.*"
+        - ".*核心是.*"
+        - ".*最重要.*"
+
+    # 长度和复杂度
+    - type: length
+      min_chars: 15      # 最少字符数
+      max_chars: 100     # 最多字符数
+      min_words: 5       # 最少词数
+
+    # AI 分析（可选，需要 API）
+    - type: ai
+      enable: false      # 默认关闭，需要配置 API
+      model: gpt-4
+      api_key: ""        # 留空从环境变量读取
+      max_quotes: 5      # 最多返回 N 条金句
+
+  # GIF 生成配置
+  gif:
+    width: 480           # GIF 宽度
+    fps: 15              # 帧率
+    start_offset: -0.5   # 金句开始前 0.5 秒
+    end_offset: 0.5      # 金句结束后 0.5 秒
+    max_duration: 10     # 最大时长（秒）
+    quality: medium      # low/medium/high
+
+# ===== 输出配置 =====
+output:
+  formats:
+    - mp4
+    - webm               # 可选：生成 webm 格式
+  quality:
+    high:
+      video_bitrate: "5M"
+      audio_bitrate: "192k"
+      resolution: "original"
+    medium:
+      video_bitrate: "2M"
+      audio_bitrate: "128k"
+      resolution: "1280:-1"  # 宽度 1280，高度自适应
+    low:
+      video_bitrate: "1M"
+      audio_bitrate: "96k"
+      resolution: "854:-1"   # 宽度 854，高度自适应
+
+  # 是否生成字幕
+  generate_srt: true
+  embed_subtitle: false    # 是否将字幕烧录到视频
+
+  # 是否提取音频
+  extract_audio: false
+  audio_format: mp3        # mp3/wav/aac
+
+# ===== 批量处理配置 =====
+batch:
+  max_parallel: 3          # 最大并行处理数
+  pattern: "*.mp4"         # 默认文件匹配模式
+
+# ===== 缓存配置 =====
+cache:
+  enable: true
+  dir: ".cache"
+  transcript_hash: true    # 使用视频文件哈希作为缓存键
+
+# ===== 日志配置 =====
+logging:
+  level: INFO              # DEBUG/INFO/WARNING/ERROR
+  file: "video_cutter.log"
+  console: true
+
+# ===== 进度显示配置 =====
+progress:
+  enable: true
+  style: bar               # bar/simple/none
+
+# ===== 预览模式配置 =====
+preview:
+  show_segments: true      # 显示将被删除的片段详情
+  max_show: 20             # 最多显示多少个片段
+  export_report: true      # 导出预览报告到文件
+  report_format: markdown  # markdown/json/html
+
+# ===== 多语言支持 =====
+language: zh               # zh/en/ja
+lang_config:
+  zh:
+    fillers: ["嗯", "啊", "哎", "诶", "呃", "额", "唉", "哦", "噢", "呀", "欸"]
+    model: paraformer-zh
+  en:
+    fillers: ["um", "uh", "like", "you know", "actually", "basically"]
+    model: whisper
+  ja:
+    fillers: ["えっと", "あの", "その", "まあ"]
+    model: whisper
+
+# ===== 高级功能 =====
+advanced:
+  # 说话速度分析
+  speech_rate_analysis:
+    enable: true
+    warn_threshold: 400    # 超过 400 字/分钟显示警告
+
+  # 自定义删除规则
+  custom_rules:
+    - name: "删除自我纠正"
+      pattern: "不好意思.*说错了"
+      regex: true
+
+    - name: "删除口头禅"
+      pattern: "你懂得"
+      regex: false
+
+  # 智能建议
+  smart_suggestions:
+    enable: true
+    suggest_remove_silence:
+      threshold: 20        # 静音超过 20 处时建议
+    suggest_keep_filler:
+      threshold: 0.3       # 删除比例超过 30% 时建议保留部分
+
+# ===== 项目配置 =====
+project:
+  base_dir: "./VideoProjects/Projects"
+  auto_create: true        # 自动创建项目目录
