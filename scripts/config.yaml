@@ -1,6 +1,14 @@
 # Video Cutter 配置文件
 # 可以根据需要修改这些参数
 
+# ===== 转录配置 =====
+transcription:
+  method: whisperX        # whisperX（推荐）或 funasr
+  model: medium            # WhisperX 模型: tiny/base/small/medium/large-v2/large-v3
+  compute_type: float16    # 计算类型: float16（GPU）/ float32（CPU）/ int8
+  diarization: false       # 是否启用说话人分离
+  batch_size: 16           # 批处理大小（GPU 显存不足时减小）
+
 # ===== 语气词和填充词配置 =====
 filler_words:
   - 嗯

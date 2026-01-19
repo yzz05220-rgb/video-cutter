@@ -156,7 +156,12 @@ class VideoCutterPipeline:
     def _transcribe(self, video_path: str, output_json: str, temp_dir: str) -> bool:
         """转录视频"""
         try:
-            # 导入转录模块
+            # 优先使用 WhisperX（如果可用）
+            if self._try_whisperX(video_path, output_json, temp_dir):
+                return True
+
+            # 回退到原始转录方法
+            print("⚠️ WhisperX 不可用，使用原始转录方法")
             import importlib.util
             spec = importlib.util.spec_from_file_location("transcriber", "transcriber.py")
             transcriber = importlib.util.module_from_spec(spec)
@@ -166,6 +171,39 @@ class VideoCutterPipeline:
 
         except Exception as e:
             print(f"❌ 转录失败: {e}")
+            return False
+
+    def _try_whisperX(self, video_path: str, output_json: str, temp_dir: str) -> bool:
+        """尝试使用 WhisperX 转录"""
+        try:
+            import importlib.util
+            spec = importlib.util.spec_from_file_location(
+                "transcriber_whisperX",
+                "transcriber_whisperX.py"
+            )
+            transcriber_whisperX = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(transcriber_whisperX)
+
+            # 从配置读取参数
+            transcribe_config = self.config.get('transcription', {})
+            model = transcribe_config.get('model', 'medium')
+            compute = transcribe_config.get('compute_type', 'float16')
+            diarization = transcribe_config.get('diarization', False)
+            batch_size = transcribe_config.get('batch_size', 16)
+
+            print("\n🚀 使用 WhisperX 增强转录")
+
+            return transcriber_whisperX.transcribe_with_whisperX(
+                video_path,
+                output_json,
+                model_size=model,
+                compute_type=compute,
+                diarization=diarization,
+                batch_size=batch_size
+            )
+
+        except Exception as e:
+            print(f"⚠️ WhisperX 调用失败: {e}")
             return False
 
     def _analyze(self, transcript_json: str, filter_txt: str, remove_silence: bool, preview_only: bool) -> bool:
