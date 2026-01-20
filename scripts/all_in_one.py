@@ -209,19 +209,18 @@ class VideoCutterPipeline:
     def _analyze(self, transcript_json: str, filter_txt: str, remove_silence: bool, preview_only: bool) -> bool:
         """分析转录"""
         try:
-            # 使用增强的分析器
-            if os.path.exists("analyzer_v2.py"):
+            # 优先使用完整分析器
+            if os.path.exists("analyzer_complete.py"):
                 import importlib.util
-                spec = importlib.util.spec_from_file_location("analyzer_v2", "analyzer_v2.py")
+                spec = importlib.util.spec_from_file_location("analyzer_complete", "analyzer_complete.py")
                 analyzer = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(analyzer)
 
                 return analyzer.analyze_transcript(
                     transcript_json,
                     filter_txt,
-                    remove_silence=remove_silence,
-                    preview_mode=preview_only,
-                    config_path=self.config_path
+                    config_file=self.config_path,
+                    use_llm=False  # 默认不使用LLM
                 )
             else:
                 # 使用原版分析器
@@ -271,12 +270,14 @@ class VideoCutterPipeline:
         try:
             if os.path.exists("golden_quote_detector.py"):
                 import importlib.util
-                spec = importlib.util.spec_from_file_location("detector", "golden_quote_detector.py")
+                spec = importlib.util.spec_from_file_location("golden_quote_detector", "golden_quote_detector.py")
                 detector = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(detector)
 
                 dq = detector.GoldenQuoteDetector(self.config_path)
                 dq.detect(transcript_json, quotes_json)
+
+                print(f"✅ 金句检测完成，已保存至: {quotes_json}")
 
         except Exception as e:
             print(f"⚠️ 金句检测失败: {e}")
