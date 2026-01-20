@@ -5,8 +5,8 @@ import json
 import shutil
 from funasr import AutoModel
 
-# 设置控制台编码为UTF-8
-if sys.platform == 'win32':
+# 设置控制台编码为UTF-8（仅在直接运行时）
+if sys.platform == 'win32' and __name__ == '__main__':
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')

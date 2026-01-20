@@ -12,8 +12,8 @@ import argparse
 from pathlib import Path
 from typing import List, Dict
 
-# 设置控制台编码为UTF-8
-if sys.platform == 'win32':
+# 设置控制台编码为UTF-8（仅在直接运行时）
+if sys.platform == 'win32' and __name__ == '__main__':
     import io
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
@@ -27,21 +27,7 @@ class GifGenerator:
 
     def _load_config(self, config_path: str) -> Dict:
         """加载配置文件"""
-        try:
-            import yaml
-            if config_path and os.path.exists(config_path):
-                with open(config_path, 'r', encoding='utf-8') as f:
-                    try:
-                        return yaml.safe_load(f)
-                    except:
-                        # 如果yaml读取失败，返回默认配置
-                        print(f"⚠️  警告: 无法读取配置文件 {config_path}，使用默认配置")
-                        return {}
-        except ImportError:
-            pass
-
-        # 默认配置
-        return {
+        default_config = {
             'golden_quotes': {
                 'gif': {
                     'width': 480,
@@ -53,6 +39,32 @@ class GifGenerator:
                 }
             }
         }
+
+        try:
+            import yaml
+            if config_path and os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    try:
+                        config = yaml.safe_load(f)
+                        # 如果 yaml.safe_load 返回 None 或空字典，使用默认配置
+                        if config and isinstance(config, dict):
+                            # 合并配置，确保 golden_quotes.gif 存在
+                            if 'golden_quotes' not in config:
+                                config['golden_quotes'] = {}
+                            if 'gif' not in config.get('golden_quotes', {}):
+                                config['golden_quotes']['gif'] = default_config['golden_quotes']['gif']
+                            return config
+                        else:
+                            return default_config
+                    except Exception as e:
+                        # 如果yaml读取失败，返回默认配置
+                        print(f"⚠️  警告: 无法读取配置文件 {config_path}: {e}，使用默认配置")
+                        return default_config
+        except ImportError:
+            pass
+
+        # 默认配置
+        return default_config
 
     def generate_from_quotes(
         self,
@@ -207,9 +219,9 @@ class GifGenerator:
 
         # 质量设置
         quality_settings = {
-            'low': {'scale': '320:-1', 'palette': 'max_colors=64'},
-            'medium': {'scale': f'{width}:-1', 'palette': 'max_colors=128'},
-            'high': {'scale': f'{width}:-1', 'palette': 'max_colors=256'}
+            'low': {'scale': f'scale=320:-1', 'palette': 'max_colors=64'},
+            'medium': {'scale': f'scale={width}:-1', 'palette': 'max_colors=128'},
+            'high': {'scale': f'scale={width}:-1', 'palette': 'max_colors=256'}
         }
 
         qs = quality_settings.get(quality, quality_settings['medium'])
