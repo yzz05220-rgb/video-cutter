@@ -31,7 +31,12 @@ class GifGenerator:
             import yaml
             if config_path and os.path.exists(config_path):
                 with open(config_path, 'r', encoding='utf-8') as f:
-                    return yaml.safe_load(f)
+                    try:
+                        return yaml.safe_load(f)
+                    except:
+                        # 如果yaml读取失败，返回默认配置
+                        print(f"⚠️  警告: 无法读取配置文件 {config_path}，使用默认配置")
+                        return {}
         except ImportError:
             pass
 
@@ -71,8 +76,12 @@ class GifGenerator:
         print(f"🎬 开始生成 GIF...")
 
         # 加载金句数据
-        with open(quotes_json, 'r', encoding='utf-8') as f:
-            data = json.load(f)
+        try:
+            with open(quotes_json, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except Exception as e:
+            print(f"❌ 无法读取金句文件: {e}")
+            return []
 
         quotes = data.get('quotes', [])
         if not quotes:
@@ -208,35 +217,41 @@ class GifGenerator:
         # 临时调色板文件
         palette_path = output_path.replace('.gif', '_palette.png')
 
-        # 步骤1: 生成调色板
-        palette_cmd = [
-            'ffmpeg', '-y',
-            '-ss', str(start),
-            '-i', video_path,
-            '-t', str(end - start),
-            '-vf', f"{qs['scale']},palettegen={qs['palette']}",
-            palette_path
-        ]
+        try:
+            # 步骤1: 生成调色板
+            palette_cmd = [
+                'ffmpeg', '-y',
+                '-ss', str(start),
+                '-i', video_path,
+                '-t', str(end - start),
+                '-vf', f"{qs['scale']},palettegen={qs['palette']}",
+                palette_path
+            ]
 
-        subprocess.run(palette_cmd, check=True, capture_output=True)
+            result = subprocess.run(palette_cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                print(f"    ⚠️  调色板生成警告: {result.stderr[-100:]}")
 
-        # 步骤2: 使用调色板生成 GIF
-        gif_cmd = [
-            'ffmpeg', '-y',
-            '-ss', str(start),
-            '-i', video_path,
-            '-t', str(end - start),
-            '-i', palette_path,
-            '-filter_complex', f"{qs['scale']} [x]; [x][1:v] paletteuse",
-            '-r', str(fps),
-            output_path
-        ]
+            # 步骤2: 使用调色板生成 GIF
+            gif_cmd = [
+                'ffmpeg', '-y',
+                '-ss', str(start),
+                '-i', video_path,
+                '-t', str(end - start),
+                '-i', palette_path,
+                '-filter_complex', f"{qs['scale']} [x]; [x][1:v] paletteuse",
+                '-r', str(fps),
+                output_path
+            ]
 
-        subprocess.run(gif_cmd, check=True, capture_output=True)
+            result = subprocess.run(gif_cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                raise Exception(f"FFmpeg错误: {result.stderr}")
 
-        # 清理临时文件
-        if os.path.exists(palette_path):
-            os.remove(palette_path)
+        finally:
+            # 清理临时文件
+            if os.path.exists(palette_path):
+                os.remove(palette_path)
 
     def generate_highlights_gif(
         self,
