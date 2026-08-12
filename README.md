@@ -1,3 +1,5 @@
+
+
 # 🎬 智能视频剪辑工具 (Video Cutter)
 
 > 自动转录语音、智能识别语气词/重复/静音、一键剪辑、金句检测、GIF生成
@@ -188,7 +190,7 @@ golden_quotes:
 | 工具 | 说明 | 状态 |
 |------|------|------|
 | `all_in_one.py` | 一键处理（推荐使用） | 🆕 新增 |
-| `analyzer_v2.py` | 增强版分析器（预览、智能边界） | 🆕 新增 |
+| `analyzer_complete.py` | 增强版分析器（预览、智能边界） | 🆕 新增 |
 | `golden_quote_detector.py` | 金句检测器 | 🆕 新增 |
 | `gif_generator.py` | GIF 生成器 | 🆕 新增 |
 | `stats_analyzer.py` | 统计分析工具 | 🆕 新增 |
